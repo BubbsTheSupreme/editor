@@ -32,8 +32,10 @@ char read_input(char input);
 
 int main(int argc, char *argv[]) {
 	struct termios oldts, ts;
-	struct visualbuf *vbuf;
-	vbuf->curx, vbuf->cury = 0;
+	struct visualbuf _vbuf;
+	struct visualbuf *vbuf = &_vbuf;
+	vbuf->curx = 0;
+	vbuf->cury = 0;
 	tcgetattr(STDIN_FILENO, &ts);
 	oldts = ts;
 	rawmode(&ts);
@@ -45,37 +47,34 @@ int main(int argc, char *argv[]) {
 			read(STDIN_FILENO, &input, 1);
 			switch(input) {
 				case 65:
-					vbuf->cury--;
-					gotoxy(vbuf->curx,vbuf->cury);
-					printf(CURSOR);
+					// vbuf->cury--;
+					// gotoxy(vbuf->curx,vbuf->cury);
+					// printf(CURSOR);
+					// printf("|");
 					break;
 				case 66:
 					vbuf->cury++;
 					gotoxy(vbuf->curx,vbuf->cury);
 					printf(CURSOR);
+					printf("|");
 					break;
 				case 67:
 					vbuf->curx++;
 					gotoxy(vbuf->curx,vbuf->cury);
 					printf(CURSOR);
-					printf("%c", 219);
-					update();
+					printf("|");
 					break;
 				case 68:
 					vbuf->curx--;
 					gotoxy(vbuf->curx,vbuf->cury);
 					printf(CURSOR);
-					printf("%c", 219);
-					update();
+					printf("|");
 					break;
 			}
 		}
 		else if (CTRL_KEY('c') == input) {
 			tcsetattr(STDIN_FILENO, TCSAFLUSH, &oldts);
 			return 0;
-		}
-		else{
-			// printf("%d \n", input);
 		}
 	}
 	tcsetattr(STDIN_FILENO, TCSAFLUSH, &oldts);
@@ -90,3 +89,5 @@ void rawmode(struct termios *ts) {
 	ts->c_cflag |= CS8;
 	tcsetattr(STDIN_FILENO, TCSAFLUSH, ts);
 }
+
+// https://en.cppreference.com/w/c/io/setvbuf
