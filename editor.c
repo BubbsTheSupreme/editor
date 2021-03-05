@@ -2,12 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <termios.h>
-
-#define gotoxy(x, y) printf("\033[%d;%df", y, x)
-#define update() printf("\033[H\033[J") 
+#include <curses.h>
+ 
 #define CTRL_KEY(x) ((x) & 0x1f)
-#define CURSOR "\033[D"
+#define CURSOR "\u2588"
 #define TABS 4
 
 struct filebuf {
@@ -25,69 +23,56 @@ struct visualbuf {
 };
 
 void write_buf_to_file(struct filebuf buf);
+void write_file_rows(struct filebuf buf);
 void read_file_to_buf(struct filebuf buf);
 void update_screen(struct visualbuf buf);
-void rawmode(struct termios *ts);
 char read_input(char input);
 
 int main(int argc, char *argv[]) {
-	struct termios oldts, ts;
 	struct visualbuf _vbuf;
 	struct visualbuf *vbuf = &_vbuf;
 	vbuf->curx = 0;
 	vbuf->cury = 0;
-	tcgetattr(STDIN_FILENO, &ts);
-	oldts = ts;
-	rawmode(&ts);
+	int row, col;
 	char input; // input buffer
-	while(1) {
-		read(STDIN_FILENO, &input, 1);
-		if (input == '\033') {
-			read(STDIN_FILENO, &input, 1);
-			read(STDIN_FILENO, &input, 1);
-			switch(input) {
-				case 65:
-					// vbuf->cury--;
-					// gotoxy(vbuf->curx,vbuf->cury);
-					// printf(CURSOR);
-					// printf("|");
-					break;
-				case 66:
-					vbuf->cury++;
-					gotoxy(vbuf->curx,vbuf->cury);
-					printf(CURSOR);
-					printf("|");
-					break;
-				case 67:
-					vbuf->curx++;
-					gotoxy(vbuf->curx,vbuf->cury);
-					printf(CURSOR);
-					printf("|");
-					break;
-				case 68:
-					vbuf->curx--;
-					gotoxy(vbuf->curx,vbuf->cury);
-					printf(CURSOR);
-					printf("|");
-					break;
-			}
+	initscr();
+	noecho();
+	getmaxyx(stdscr, row, col);
+	cbreak();
+	move(0,0);
+	while (1) {
+		input = getch();
+		switch(input) {
+			case CTRL_KEY('c'):
+				exit(0);
+			case '\033':
+				getch();
+				switch(getch()){
+					case 65:
+						vbuf->cury--;
+						move(vbuf->cury, vbuf->curx);
+						break;
+					case 66:
+						vbuf->cury++;
+						move(vbuf->cury, vbuf->curx);
+						break;
+					case 67:
+						vbuf->curx++;
+						move(vbuf->cury, vbuf->curx);
+						break;
+					case 68:
+						vbuf->curx--;
+						move(vbuf->cury, vbuf->curx);
+						break;
+				}
+				break;
 		}
-		else if (CTRL_KEY('c') == input) {
-			tcsetattr(STDIN_FILENO, TCSAFLUSH, &oldts);
-			return 0;
-		}
+		refresh();
 	}
-	tcsetattr(STDIN_FILENO, TCSAFLUSH, &oldts);
+	endwin();
 	return 0;
 }
 
-void rawmode(struct termios *ts) {
-	ts->c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
-	ts->c_oflag |= ~OPOST;
-	ts->c_lflag &= ~(ECHO | ICANON | ECHONL | ISIG | IEXTEN);
-	ts->c_cflag &= ~(CSIZE | PARENB);
-	ts->c_cflag |= CS8;
-	tcsetattr(STDIN_FILENO, TCSAFLUSH, ts);
-}
+
 
 // https://en.cppreference.com/w/c/io/setvbuf
