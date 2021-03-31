@@ -20,9 +20,10 @@ struct visualbuf {
 	int curx;
 	int cury;
 	int linelen;
-	int tabsinline;
 	char *line; // original lines with tabs
 	char *newline; // new line with tabs replaced with spaces
+	int tabsinline;
+	char lines[]; // will store all the new lines in and will be what is edited and visualized
 };
 
 void write_buf_to_file(int len, char *filename, char *buf);
@@ -31,6 +32,7 @@ void read_file_to_buf(struct filebuf *fbuf, char *filename);
 void update_screen();
 void process_input(char input);
 int getsize(char *filename);
+int getlinelen(int linenum, char *f) ;
 
 
 // struct filebuf _fbuf;
@@ -59,6 +61,14 @@ int main(int argc, char *argv[]) {
 	endwin();
 	return 0;
 }
+
+/*
+	   plan
+	----------
+	Need to get the length of the line that the cursor is in
+	then implement scrolling by displaying the lines that are on screen
+	use a function like sprintw() or something similar
+*/
 
 void read_file_to_buf(struct filebuf *fbuf, char *filename) {
 	FILE *file = fopen(filename, "r");
@@ -140,4 +150,32 @@ int getsize(char *filename){ // counts each byte of the file it opens
 	}
 	fclose(file);
 	return count; // return count
+}
+
+int getlinelen(int linenum, char *f) {
+	FILE *file = fopen(f, "r");
+	if (file == NULL) {
+		printf("ERROR: file failed to open..\n");
+		exit(1);
+	}
+	int charcount = 0;
+	int curline = 0;
+	int linelen = 0;
+	char c;
+	while((c = fgetc(file)) != EOF) {
+		if (c == '\n') {
+			curline++;
+			charcount = 0;
+		}
+		else{
+			charcount++;
+		}
+		if (curline == (linenum - 1)){
+			linelen = charcount;
+		}
+		if (curline == linenum) {
+			return linelen;
+		}
+	}
+	return 1;
 }
