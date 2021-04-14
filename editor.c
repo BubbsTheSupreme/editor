@@ -10,8 +10,9 @@
 #define TABS 4
 
 struct filebuf {
-	int len;
-	char *data;
+	int size;
+	int linecount;
+	char **lines; // will store all the new lines in and will be what is edited and visualized
 };
 
 struct visualbuf {
@@ -20,65 +21,62 @@ struct visualbuf {
 	int curx;
 	int cury;
 	int linelen;
-	char *line; // original lines with tabs
-	char *newline; // new line with tabs replaced with spaces
 	int tabsinline;
-	char lines[]; // will store all the new lines in and will be what is edited and visualized
+	char **newlines; // \t replaced with spaces
 };
 
 void write_buf_to_file(int len, char *filename, char *buf);
 void write_file_rows();
-void read_file_to_buf(struct filebuf *fbuf, char *filename);
-void update_screen();
+void update_screen(struct filebuf *fbuf);
 void process_input(char input);
-int getsize(char *filename);
-int getlinelen(int linenum, char *f) ;
-
+int getsize(FILE *file, char *filename);
+char **readlines(FILE *f, int *count); // credit for this function goes to this SO link
+// https://stackoverflow.com/questions/22863977/dynamically-allocated-2d-array-of-strings-from-file
 
 // struct filebuf _fbuf;
 struct visualbuf _vbuf;
 struct visualbuf *vbuf = &_vbuf;
 
 int main(int argc, char *argv[]) {
+	char *filename = "test2.txt";
 	char input; // input buffer
+	int count;
 	struct filebuf _fbuf;
 	struct filebuf *fbuf = &_fbuf;
-	fbuf->len = getsize("test.txt");
 	vbuf->curx = 0;
 	vbuf->cury = 0;
+	
 	initscr();
 	getmaxyx(stdscr, vbuf->maxy,vbuf->maxx);
 	noecho();
 	cbreak();
-	read_file_to_buf(fbuf, "test.txt");
-	update_screen(fbuf);
-	move(0,0);
-	while (1) {
-		input = getch();
-		process_input(input);
-		refresh();
+
+	FILE *file = fopen(filename, "r+");
+	if (file == NULL){
+		printf("ERROR: file failed to open..\n");
+		exit(1);
 	}
+	
+	fbuf->lines = readlines(file, &count);
+	fbuf->linecount = count;
+
+	// move(0,0);
+	// update_screen(fbuf);
+	// while (1) {
+	// 	input = getch();
+	// 	process_input(input);
+	// 	update_screen(fbuf);
+	//  refresh();
+	// }
+	fclose(file);
 	endwin();
 	return 0;
 }
 
-/*
-	   plan
-	----------
-	Need to get the length of the line that the cursor is in
-	then implement scrolling by displaying the lines that are on screen
-	use a function like sprintw() or something similar
-*/
-
-void read_file_to_buf(struct filebuf *fbuf, char *filename) {
-	FILE *file = fopen(filename, "r");
-	fbuf->data = malloc(sizeof(char)*fbuf->len);
-	fread(fbuf->data, fbuf->len, 1, file);
-	fclose(file);
-}
-
 void update_screen(struct filebuf *fbuf) {
-	printw(fbuf->data);
+	for (int i = 0; i < fbuf->linecount; i++) {
+		wprintw("%s", fbuf->lines[i]);
+	}
 }
 
 void process_input(char input) {
@@ -129,12 +127,7 @@ void process_input(char input) {
 	}
 }
 
-int getsize(char *filename){ // counts each byte of the file it opens
-	FILE *file = fopen(filename, "r");
-	if (file == NULL){
-		printf("ERROR: file failed to open..\n");
-		exit(1);
-	}
+int getsize(FILE *file, char *filename){ // counts each byte of the file it opens
 	int count = 0;
 	char c;
 	if (file) {
@@ -148,34 +141,43 @@ int getsize(char *filename){ // counts each byte of the file it opens
 			}
 		}
 	}
-	fclose(file);
 	return count; // return count
 }
 
-int getlinelen(int linenum, char *f) {
-	FILE *file = fopen(f, "r");
-	if (file == NULL) {
-		printf("ERROR: file failed to open..\n");
-		exit(1);
+char **readlines(FILE *f, int *count) {
+	char **array = NULL;
+	int i;
+	char line[150];
+	int linecount;
+	int linelen;
+
+	*count = 0;
+
+	linecount = 0;
+	while(fgets(line, sizeof(line), f) != NULL) {
+		linecount++;
 	}
-	int charcount = 0;
-	int curline = 0;
-	int linelen = 0;
-	char c;
-	while((c = fgetc(file)) != EOF) {
-		if (c == '\n') {
-			curline++;
-			charcount = 0;
-		}
-		else{
-			charcount++;
-		}
-		if (curline == (linenum - 1)){
-			linelen = charcount;
-		}
-		if (curline == linenum) {
-			return linelen;
-		}
+
+	rewind(f);
+
+	array = malloc(linecount * sizeof(char *));
+	if(array == NULL) {
+		return NULL; // ERROR
 	}
-	return 1;
+
+	for(i = 0; i < linecount; i++) {
+		fgets(line, sizeof(line), f);
+
+		linelen = strlen(line);
+		line[linelen - 1] = '\0';
+		linelen--;
+
+		array[i] = malloc(linelen + 1);
+
+		strcpy(array[i], line);
+	}
+
+	*count = linecount;
+
+	return array;
 }
