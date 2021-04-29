@@ -1,149 +1,41 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <curses.h>
-#include <sys/ioctl.h>
- 
-#define CTRL_KEY(x) ((x) & 0x1f)
-#define CURSOR "\u2588"
-#define TABS 4
-
-struct filebuf {
-	int size;
-	int linecount;
-	char **lines; // will store all the new lines in and will be what is edited and visualized
-};
-
-struct visualbuf {
-	int maxx;
-	int maxy;
-	int curx;
-	int cury;
-	int linelen;
-	int tabsinline;
-	char **newlines; // \t replaced with spaces
-};
+#include "editor.h"
 
 void write_buf_to_file(int len, char *filename, char *buf);
-void write_file_rows();
-void update_screen(struct filebuf *fbuf);
-void process_input(char input);
-int getsize(FILE *file, char *filename);
-char **readlines(FILE *f, int *count); // credit for this function goes to this SO link
-// https://stackoverflow.com/questions/22863977/dynamically-allocated-2d-array-of-strings-from-file
 
-// struct filebuf _fbuf;
-struct visualbuf _vbuf;
-struct visualbuf *vbuf = &_vbuf;
 
-int main(int argc, char *argv[]) {
-	char *filename = "test2.txt";
-	char input; // input buffer
-	int count;
-	struct filebuf _fbuf;
-	struct filebuf *fbuf = &_fbuf;
-	vbuf->curx = 0;
-	vbuf->cury = 0;
+int getlinesize(char **buf, int line) {
+	int i;
+	for (i = 0; buf[line][i] != '\0'; i++);
+	return i;
+}
+
+void update_screen(filebuf *fbuf, WINDOW *win) {
+	int i;
+	int j;
+	int linesize;
 	
-	initscr();
-	getmaxyx(stdscr, vbuf->maxy,vbuf->maxx);
-	noecho();
-	cbreak();
-
-	FILE *file = fopen(filename, "r+");
-	if (file == NULL){
-		printf("ERROR: file failed to open..\n");
-		exit(1);
-	}
-	
-	fbuf->lines = readlines(file, &count);
-	fbuf->linecount = count;
-
-	// move(0,0);
-	// update_screen(fbuf);
-	// while (1) {
-	// 	input = getch();
-	// 	process_input(input);
-	// 	update_screen(fbuf);
-	//  refresh();
-	// }
-	fclose(file);
-	endwin();
-	return 0;
-}
-
-void update_screen(struct filebuf *fbuf) {
-	for (int i = 0; i < fbuf->linecount; i++) {
-		wprintw("%s", fbuf->lines[i]);
-	}
-}
-
-void process_input(char input) {
-	switch(input) {
-		case CTRL_KEY('c'):
-			exit(0);
-		case '\033':
-			getch();
-			switch(getch()){
-				case 65:
-					if(vbuf->cury < 0) {
-						vbuf->cury = 0;
-					}
-					else{
-						vbuf->cury--;
-					}
-					move(vbuf->cury, vbuf->curx);
-					break;
-				case 66:
-					if(vbuf->cury > vbuf->maxy){
-						vbuf->cury = vbuf->maxy;
-					}
-					else {
-						vbuf->cury++;
-					}
-					move(vbuf->cury, vbuf->curx);
-					break;
-				case 67:
-					if(vbuf->curx > vbuf->maxx){
-						vbuf->curx = vbuf->maxx;
-					}
-					else {
-						vbuf->curx++;
-					}
-					move(vbuf->cury, vbuf->curx);
-					break;
-				case 68:
-					if(vbuf->curx < 0) {
-						vbuf->curx = 0;
-					}
-					else{
-						vbuf->curx--;
-					}
-					move(vbuf->cury, vbuf->curx);
-					break;
-			}
-			break;
-	}
-}
-
-int getsize(FILE *file, char *filename){ // counts each byte of the file it opens
-	int count = 0;
-	char c;
-	if (file) {
-		while(1) {
-			c = fgetc(file); // read byte and store it in c
-			if (c == EOF){ // if the byte is equal to the end of file byte 
-				break; // then exit the loop and continue through the function
-			}
-			else{
-				count++; // increment the count 
-			}
+	for (i = 0; i < fbuf->linecount; i++) {
+		linesize = getlinesize(fbuf->lines, i);
+		for (j = 0; j < linesize; j++) {
+			// if (fbuf->lines[i][j] == '\n') {
+			// 	printw("\n", fbuf->lines[i][j]);
+			// }
+			// if (fbuf->lines[i][j] == '\t') {
+			// 	for (int k = 0; k < TABS; k++)
+			// 		printw(" ", fbuf->lines[i][j]);
+			// }
+			// else {
+			// 	printw("%s", fbuf->lines[i][j]);
+			// }
+			// printw("%s", fbuf->lines[i][j]);
+			wprintw(win, "%d %d\n", i, j);
 		}
+		
 	}
-	return count; // return count
 }
 
+// credit for this function goes to this SO link
+// https://stackoverflow.com/questions/22863977/dynamically-allocated-2d-array-of-strings-from-file
 char **readlines(FILE *f, int *count) {
 	char **array = NULL;
 	int i;
@@ -181,3 +73,52 @@ char **readlines(FILE *f, int *count) {
 
 	return array;
 }
+
+void process_input(char input, visualbuf *vbuf) {
+	switch(input) {
+		case CTRL_KEY('c'):
+			exit(0);
+		case '\033':
+			getch();
+			switch(getch()){
+				case 65: // up
+					if(vbuf->cury < 0) {
+						vbuf->cury = 0;
+					}
+					else{
+						vbuf->cury--;
+					}
+					move(vbuf->cury, vbuf->curx);
+					break;
+				case 66: // down
+					if(vbuf->cury > vbuf->maxy){
+						vbuf->cury = vbuf->maxy;
+					}
+					else {
+						vbuf->cury++;
+					}
+					move(vbuf->cury, vbuf->curx);
+					break;
+				case 67: // right
+					if(vbuf->curx > vbuf->maxx){
+						vbuf->curx = vbuf->maxx;
+					}
+					else {
+						vbuf->curx++;
+					}
+					move(vbuf->cury, vbuf->curx);
+					break;
+				case 68: // left
+					if(vbuf->curx < 0) {
+						vbuf->curx = 0;
+					}
+					else{
+						vbuf->curx--;
+					}
+					move(vbuf->cury, vbuf->curx);
+					break;
+			}
+			break;
+	}
+}
+
