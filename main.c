@@ -16,7 +16,6 @@ int main(int argc, char *argv[]) {
 	getmaxyx(stdscr, vbuf->maxy,vbuf->maxx);
 	noecho();
 	cbreak();
-	WINDOW *win; // look into how to implement this
 
 	FILE *file = fopen(filename, "r+");
 	if (file == NULL){
@@ -26,12 +25,12 @@ int main(int argc, char *argv[]) {
 	
 	fbuf->lines = readlines(file, &count);
 	fbuf->linecount = count;
-	
+
+	update_screen(fbuf);
 	move(0,0);
-	update_screen(fbuf, win);
 	while (1) {
 		input = getch();
-		process_input(input, vbuf);
+		process_input(input, fbuf, vbuf);
 		refresh();
 	}
 	fclose(file);

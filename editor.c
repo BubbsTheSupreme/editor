@@ -1,36 +1,77 @@
 #include "editor.h"
+#include "editfile.h"
 
-void write_buf_to_file(int len, char *filename, char *buf);
 
-
-int getlinesize(char **buf, int line) {
-	int i;
-	for (i = 0; buf[line][i] != '\0'; i++);
-	return i;
-}
-
-void update_screen(filebuf *fbuf, WINDOW *win) {
+void update_screen(filebuf *fbuf) {
 	int i;
 	int j;
 	int linesize;
 	
 	for (i = 0; i < fbuf->linecount; i++) {
 		linesize = getlinesize(fbuf->lines, i);
-		for (j = 0; j < linesize; j++) {
-			// if (fbuf->lines[i][j] == '\n') {
-			// 	printw("\n", fbuf->lines[i][j]);
-			// }
-			// if (fbuf->lines[i][j] == '\t') {
-			// 	for (int k = 0; k < TABS; k++)
-			// 		printw(" ", fbuf->lines[i][j]);
-			// }
-			// else {
-			// 	printw("%s", fbuf->lines[i][j]);
-			// }
-			// printw("%s", fbuf->lines[i][j]);
-			wprintw(win, "%d %d\n", i, j);
+		for (j = 0; j <= linesize; j++) {
+			if (fbuf->lines[i][j] == '\0') { // newlines were removed in the process of storing values so we can replace the \0 with \n
+				printw("\n");
+			}
+			else if (fbuf->lines[i][j] == '\t') {
+				printw("    ");
+			}
+			else {
+				wprintw(stdscr, "%c", fbuf->lines[i][j]);
+			}
 		}
-		
+	}
+}
+
+void process_input(char input, filebuf *fbuf, visualbuf *vbuf) {
+	switch(input) {
+		case CTRL_KEY('c'):
+			exit(0);
+		case '\033':
+			getch();
+			switch(getch()) {
+				case 65: // up
+					if(vbuf->cury < 0) {
+						vbuf->cury = 0;
+					}
+					else{
+						vbuf->cury--;
+					}
+					move(vbuf->cury, vbuf->curx);
+					break;
+				case 66: // down
+					if(vbuf->cury > vbuf->maxy) {
+						vbuf->cury = vbuf->maxy;
+					}
+					else {
+						vbuf->cury++;
+					}
+					move(vbuf->cury, vbuf->curx);
+					break;
+				case 67: // right
+					if (fbuf->lines[vbuf->cury][vbuf->curx] == '\0') { // reaches newline and puts cursor on next line
+						vbuf->cury++; //next line
+						vbuf->curx = 0; // first character in that line
+					}
+					else if(vbuf->curx > vbuf->maxx) {
+						vbuf->curx = vbuf->maxx;
+					}
+					else {
+						vbuf->curx++;
+					}
+					move(vbuf->cury, vbuf->curx);
+					break;
+				case 68: // left
+					if(vbuf->curx < 0) {
+						vbuf->curx = 0;
+					}
+					else{
+						vbuf->curx--;
+					}
+					move(vbuf->cury, vbuf->curx);
+					break;
+			}
+			break;
 	}
 }
 
@@ -74,51 +115,8 @@ char **readlines(FILE *f, int *count) {
 	return array;
 }
 
-void process_input(char input, visualbuf *vbuf) {
-	switch(input) {
-		case CTRL_KEY('c'):
-			exit(0);
-		case '\033':
-			getch();
-			switch(getch()){
-				case 65: // up
-					if(vbuf->cury < 0) {
-						vbuf->cury = 0;
-					}
-					else{
-						vbuf->cury--;
-					}
-					move(vbuf->cury, vbuf->curx);
-					break;
-				case 66: // down
-					if(vbuf->cury > vbuf->maxy){
-						vbuf->cury = vbuf->maxy;
-					}
-					else {
-						vbuf->cury++;
-					}
-					move(vbuf->cury, vbuf->curx);
-					break;
-				case 67: // right
-					if(vbuf->curx > vbuf->maxx){
-						vbuf->curx = vbuf->maxx;
-					}
-					else {
-						vbuf->curx++;
-					}
-					move(vbuf->cury, vbuf->curx);
-					break;
-				case 68: // left
-					if(vbuf->curx < 0) {
-						vbuf->curx = 0;
-					}
-					else{
-						vbuf->curx--;
-					}
-					move(vbuf->cury, vbuf->curx);
-					break;
-			}
-			break;
-	}
+int getlinesize(char **buf, int line) {
+	int i;
+	for (i = 0; buf[line][i] != '\0'; i++);
+	return i;
 }
-

@@ -24,9 +24,9 @@ typedef struct {
 	int linelen;
 }visualbuf;
 
-void update_screen(filebuf *fbuf, WINDOW *win);
+void update_screen(filebuf *fbuf);
 int getlinesize(char **buf, int line);
 char **readlines(FILE *f, int *count);
-void process_input(char input, visualbuf *vbuf);
+void process_input(char input, filebuf *fbuf, visualbuf *vbuf);
 
 #endif
