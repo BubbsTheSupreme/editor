@@ -26,6 +26,7 @@ int main(int argc, char *argv[]) {
 	fbuf->lines = readlines(file, &count);
 	fbuf->linecount = count;
 
+	printf("lines: %d\n", fbuf->linecount);
 	update_screen(fbuf);
 	move(0,0);
 	while (1) {

@@ -49,9 +49,15 @@ void process_input(char input, filebuf *fbuf, visualbuf *vbuf) {
 					move(vbuf->cury, vbuf->curx);
 					break;
 				case 67: // right
+					// BUG: WILL CHECK EVEN IF THERE IS NOTHING IN THE LINE
 					if (fbuf->lines[vbuf->cury][vbuf->curx] == '\0') { // reaches newline and puts cursor on next line
-						vbuf->cury++; //next line
-						vbuf->curx = 0; // first character in that line
+						if (fbuf->linecount - 1 > vbuf->cury){
+							vbuf->cury++; //next line
+							vbuf->curx = 0; // first character in that line
+						}
+						else {
+							vbuf->cury == vbuf->cury;
+						}
 					}
 					else if(vbuf->curx > vbuf->maxx) {
 						vbuf->curx = vbuf->maxx;
@@ -62,8 +68,13 @@ void process_input(char input, filebuf *fbuf, visualbuf *vbuf) {
 					move(vbuf->cury, vbuf->curx);
 					break;
 				case 68: // left
-					if(vbuf->curx < 0) {
+					if(vbuf->curx <= 0 && vbuf->cury == 0) {
 						vbuf->curx = 0;
+					}
+					else if (vbuf->curx < 0) {
+						int newx = getlinesize(fbuf->lines, vbuf->cury - 1);
+						vbuf->curx = newx+1;
+						vbuf->cury--;
 					}
 					else{
 						vbuf->curx--;
