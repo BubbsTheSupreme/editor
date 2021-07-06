@@ -21,10 +21,13 @@ typedef struct {
 	int maxy;
 	int curx;
 	int cury;
+	int ctrlc;
 	int linelen;
+	int hoffset;
+	int voffset;
 }visualbuf;
 
-void update_screen(filebuf *fbuf);
+void update_screen(filebuf *fbuf, visualbuf *vbuf);
 int getlinesize(char **buf, int line);
 char **readlines(FILE *f, int *count);
 void process_input(char input, filebuf *fbuf, visualbuf *vbuf);

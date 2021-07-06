@@ -1,23 +1,29 @@
 #include "editor.h"
-#include "editfile.h"
 
 
-void update_screen(filebuf *fbuf) {
+void update_screen(filebuf *fbuf, visualbuf *vbuf) {
 	int i;
 	int j;
 	int linesize;
-	
-	for (i = 0; i < fbuf->linecount; i++) {
-		linesize = getlinesize(fbuf->lines, i);
-		for (j = 0; j <= linesize; j++) {
-			if (fbuf->lines[i][j] == '\0') { // newlines were removed in the process of storing values so we can replace the \0 with \n
-				printw("\n");
-			}
-			else if (fbuf->lines[i][j] == '\t') {
-				printw("    ");
-			}
-			else {
-				wprintw(stdscr, "%c", fbuf->lines[i][j]);
+
+	endwin();
+	initscr();
+	clear();
+
+	for (i = 0 + vbuf->voffset; i - vbuf->voffset < vbuf->maxy; i++) {
+		if (i > fbuf->linecount) {
+			continue;
+		}
+		else {
+			linesize = getlinesize(fbuf->lines, i);
+			for (j = 0; j <= linesize; j++) {
+				// newlines were removed in the process of storing values so we can replace the \0 with \n
+				if (fbuf->lines[i][j] == '\0') { 
+					printw("\n");
+				}
+				else {
+					wprintw(stdscr, "%c", fbuf->lines[i][j]);
+				}
 			}
 		}
 	}
@@ -26,13 +32,18 @@ void update_screen(filebuf *fbuf) {
 void process_input(char input, filebuf *fbuf, visualbuf *vbuf) {
 	switch(input) {
 		case CTRL_KEY('c'):
-			exit(0);
+			vbuf->ctrlc = 1;
+			break;
 		case '\033':
 			getch();
 			switch(getch()) {
 				case 65: // up
-					if(vbuf->cury < 0) {
+					if(vbuf->cury == 0) {
 						vbuf->cury = 0;
+						if (vbuf->voffset > 0){
+							vbuf->voffset--;
+							update_screen(fbuf, vbuf);
+						}
 					}
 					else{
 						vbuf->cury--;
@@ -40,16 +51,19 @@ void process_input(char input, filebuf *fbuf, visualbuf *vbuf) {
 					move(vbuf->cury, vbuf->curx);
 					break;
 				case 66: // down
-					if(vbuf->cury > vbuf->maxy) {
-						vbuf->cury = vbuf->maxy;
+					if(vbuf->cury == vbuf->maxy - 1 && (vbuf->maxy + vbuf->voffset) != fbuf->linecount) {
+						vbuf->cury = vbuf->maxy - 1;
+						if ((vbuf->maxy + vbuf->voffset) < fbuf->linecount) {
+							vbuf->voffset++;
+							update_screen(fbuf, vbuf);
+						}
 					}
-					else {
+					else if ((vbuf->maxy + vbuf->voffset) <= fbuf->linecount) {
 						vbuf->cury++;
 					}
 					move(vbuf->cury, vbuf->curx);
 					break;
 				case 67: // right
-					// BUG: WILL CHECK EVEN IF THERE IS NOTHING IN THE LINE
 					if (fbuf->lines[vbuf->cury][vbuf->curx] == '\0') { // reaches newline and puts cursor on next line
 						if (fbuf->linecount - 1 > vbuf->cury){
 							vbuf->cury++; //next line
@@ -71,9 +85,8 @@ void process_input(char input, filebuf *fbuf, visualbuf *vbuf) {
 					if(vbuf->curx <= 0 && vbuf->cury == 0) {
 						vbuf->curx = 0;
 					}
-					else if (vbuf->curx < 0) {
-						int newx = getlinesize(fbuf->lines, vbuf->cury - 1);
-						vbuf->curx = newx+1;
+					else if (vbuf->curx == 0) {
+						vbuf->curx = getlinesize(fbuf->lines, vbuf->cury - 1);
 						vbuf->cury--;
 					}
 					else{

@@ -1,6 +1,5 @@
 #include "editor.h"
 
-
 int main(int argc, char *argv[]) {
 	visualbuf _vbuf;
 	filebuf _fbuf;
@@ -9,32 +8,36 @@ int main(int argc, char *argv[]) {
 	char *filename = "test.txt";
 	char input; // input buffer
 	int count;
+	vbuf->ctrlc = 0;
 	vbuf->curx = 0;
 	vbuf->cury = 0;
-	
+	vbuf->hoffset = 0;
+	vbuf->voffset = 0;
+
 	initscr();
-	getmaxyx(stdscr, vbuf->maxy,vbuf->maxx);
+	raw();
+	getmaxyx(stdscr, vbuf->maxy, vbuf->maxx);
 	noecho();
-	cbreak();
 
 	FILE *file = fopen(filename, "r+");
-	if (file == NULL){
-		printf("ERROR: file failed to open..\n");
-		exit(1);
+	if (file == NULL) {
+		printf("Failed to open file..\n");
+		endwin();
+		return 1;
 	}
 	
 	fbuf->lines = readlines(file, &count);
 	fbuf->linecount = count;
 
-	printf("lines: %d\n", fbuf->linecount);
-	update_screen(fbuf);
+	update_screen(fbuf, vbuf);
 	move(0,0);
 	while (1) {
 		input = getch();
 		process_input(input, fbuf, vbuf);
 		refresh();
+		if (vbuf->ctrlc == 1) break;
 	}
-	fclose(file);
 	endwin();
+	fclose(file);
 	return 0;
 }
