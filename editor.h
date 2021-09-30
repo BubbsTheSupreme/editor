@@ -13,6 +13,7 @@
 typedef struct {
 	int size;
 	int linecount;
+	int *linesize;
 	char **lines; // will store all the new lines in and will be what is edited and visualized
 }filebuf;
 
@@ -28,7 +29,7 @@ typedef struct {
 }visualbuf;
 
 void update_screen(filebuf *fbuf, visualbuf *vbuf);
-int getlinesize(char **buf, int line);
+int getlinesize(filebuf *fbuf);
 char **readlines(FILE *f, int *count);
 void process_input(char input, filebuf *fbuf, visualbuf *vbuf);
 

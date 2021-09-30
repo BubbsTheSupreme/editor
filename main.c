@@ -28,7 +28,9 @@ int main(int argc, char *argv[]) {
 	
 	fbuf->lines = readlines(file, &count);
 	fbuf->linecount = count;
+	fbuf->linesize = (int*)malloc(count * sizeof(int));
 
+	getlinesize(fbuf);
 	update_screen(fbuf, vbuf);
 	move(0,0);
 	while (1) {

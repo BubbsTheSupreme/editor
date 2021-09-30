@@ -4,7 +4,6 @@
 void update_screen(filebuf *fbuf, visualbuf *vbuf) {
 	int i;
 	int j;
-	int linesize;
 
 	endwin();
 	initscr();
@@ -15,14 +14,21 @@ void update_screen(filebuf *fbuf, visualbuf *vbuf) {
 			continue;
 		}
 		else {
-			linesize = getlinesize(fbuf->lines, i);
-			for (j = 0; j <= linesize; j++) {
+			for (j = 0 + vbuf->hoffset; j - vbuf->hoffset < vbuf->maxx; j++) {
 				// newlines were removed in the process of storing values so we can replace the \0 with \n
-				if (fbuf->lines[i][j] == '\0') { 
-					printw("\n");
+				if (j > fbuf->linesize[i] && vbuf->hoffset > 0) {
+					break;
+				}
+				else if (j > fbuf->linesize[i]) {
+					continue;
 				}
 				else {
-					wprintw(stdscr, "%c", fbuf->lines[i][j]);
+					if (fbuf->lines[i][j] == '\0') {
+						printw("\n");
+					}
+					else {
+						mvwprintw(stdscr, i - vbuf->voffset, j - vbuf->hoffset, "%c", fbuf->lines[i][j]);
+					}
 				}
 			}
 		}
@@ -45,7 +51,7 @@ void process_input(char input, filebuf *fbuf, visualbuf *vbuf) {
 							update_screen(fbuf, vbuf);
 						}
 					}
-					else{
+					else {
 						vbuf->cury--;
 					}
 					move(vbuf->cury, vbuf->curx);
@@ -61,36 +67,40 @@ void process_input(char input, filebuf *fbuf, visualbuf *vbuf) {
 					else if ((vbuf->maxy + vbuf->voffset) <= fbuf->linecount) {
 						vbuf->cury++;
 					}
+					if (vbuf->maxx < fbuf->linesize[vbuf->cury + vbuf->voffset]) {
+						vbuf->hoffset = fbuf->linesize[vbuf->cury + vbuf->voffset] - vbuf->maxx;
+						vbuf->curx = fbuf->linesize[vbuf->cury + vbuf->voffset] - vbuf->hoffset;
+						update_screen(fbuf, vbuf);
+					}
+
 					move(vbuf->cury, vbuf->curx);
 					break;
 				case 67: // right
-					if (fbuf->lines[vbuf->cury][vbuf->curx] == '\0') { // reaches newline and puts cursor on next line
-						if (fbuf->linecount - 1 > vbuf->cury){
-							vbuf->cury++; //next line
-							vbuf->curx = 0; // first character in that line
+					if(vbuf->curx == vbuf->maxx - 1) {
+						vbuf->curx = vbuf->maxx - 1;
+						if (fbuf->lines[vbuf->cury + vbuf->voffset][vbuf->curx + vbuf->hoffset] != '\0') {
+							vbuf->hoffset++;
 						}
-						else {
-							vbuf->cury == vbuf->cury;
-						}
-					}
-					else if(vbuf->curx > vbuf->maxx) {
-						vbuf->curx = vbuf->maxx;
+						update_screen(fbuf, vbuf);
 					}
 					else {
-						vbuf->curx++;
-					}
+						if (fbuf->lines[vbuf->cury + vbuf->voffset][vbuf->curx + vbuf->hoffset] != '\0') {
+							vbuf->curx++;
+						}
+					} // was working on the bug that lets the cursor move past the end of the line
 					move(vbuf->cury, vbuf->curx);
 					break;
 				case 68: // left
 					if(vbuf->curx <= 0 && vbuf->cury == 0) {
 						vbuf->curx = 0;
 					}
-					else if (vbuf->curx == 0) {
-						vbuf->curx = getlinesize(fbuf->lines, vbuf->cury - 1);
-						vbuf->cury--;
+					else if (vbuf->curx == 0 && vbuf->hoffset > 0) {
+						vbuf->hoffset--;
+						update_screen(fbuf, vbuf);
 					}
 					else{
-						vbuf->curx--;
+						if (vbuf->curx == 0) vbuf->curx = 0;
+						else vbuf->curx--;
 					}
 					move(vbuf->cury, vbuf->curx);
 					break;
@@ -139,8 +149,12 @@ char **readlines(FILE *f, int *count) {
 	return array;
 }
 
-int getlinesize(char **buf, int line) {
+// puts size of each line in an array of ints
+int getlinesize(filebuf *fbuf) {
 	int i;
-	for (i = 0; buf[line][i] != '\0'; i++);
-	return i;
+	int j;
+	for (i = 0; i < fbuf->linecount; i++) {
+		for (j = 0; fbuf->lines[i][j] != '\0'; j++) {}
+		fbuf->linesize[i] = j;
+	}
 }
