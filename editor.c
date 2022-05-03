@@ -4,18 +4,21 @@
 void update_screen(filebuf *fbuf, visualbuf *vbuf) {
 	int i;
 	int j;
+	int y = fbuf->linecount;
+
+	if (y > vbuf->maxy) y = vbuf->maxy;
 
 	endwin();
 	initscr();
 	clear();
 
-	for (i = 0 + vbuf->voffset; i - vbuf->voffset < vbuf->maxy; i++) {
+	for (i = 0 + vbuf->voffset; i - vbuf->voffset < y; i++) {
 		if (i > fbuf->linecount) {
 			continue;
 		}
 		else {
 			for (j = 0 + vbuf->hoffset; j - vbuf->hoffset < vbuf->maxx; j++) {
-				// newlines were removed in the process of storing values so we can replace the \0 with \n
+			// 	// newlines were removed in the process of storing values so we can replace the \0 with \n
 				if (j > fbuf->linesize[i] && vbuf->hoffset > 0) {
 					break;
 				}
