@@ -5,7 +5,7 @@ int main(int argc, char *argv[]) {
 	filebuf _fbuf;
 	visualbuf *vbuf = &_vbuf;
 	filebuf *fbuf = &_fbuf;
-	char *filename = "test.txt";
+	char *filename = argv[1];
 	char input; // input buffer
 	int count;
 	vbuf->ctrlc = 0;

@@ -67,12 +67,6 @@ void process_input(char input, filebuf *fbuf, visualbuf *vbuf) {
 					else if ((vbuf->maxy + vbuf->voffset) <= fbuf->linecount) {
 						vbuf->cury++;
 					}
-					if (vbuf->maxx < fbuf->linesize[vbuf->cury + vbuf->voffset]) {
-						vbuf->hoffset = fbuf->linesize[vbuf->cury + vbuf->voffset] - vbuf->maxx;
-						vbuf->curx = fbuf->linesize[vbuf->cury + vbuf->voffset] - vbuf->hoffset;
-						update_screen(fbuf, vbuf);
-					}
-
 					move(vbuf->cury, vbuf->curx);
 					break;
 				case 67: // right
@@ -87,7 +81,7 @@ void process_input(char input, filebuf *fbuf, visualbuf *vbuf) {
 						if (fbuf->lines[vbuf->cury + vbuf->voffset][vbuf->curx + vbuf->hoffset] != '\0') {
 							vbuf->curx++;
 						}
-					} // was working on the bug that lets the cursor move past the end of the line
+					}
 					move(vbuf->cury, vbuf->curx);
 					break;
 				case 68: // left
