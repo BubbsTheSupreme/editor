@@ -26,22 +26,18 @@ void update_screen(filebuf *fbuf, visualbuf *vbuf) {
 					continue;
 				}
 				else {
-					if (fbuf->lines[i][j] == '\0') {
-						printw("\n");
-					}
-					else {
-						mvwprintw(stdscr, i - vbuf->voffset, j - vbuf->hoffset, "%c", fbuf->lines[i][j]);
-					}
+					if (fbuf->lines[i][j] == '\0') printw("\n");
+					else mvwprintw(stdscr, i - vbuf->voffset, j - vbuf->hoffset, "%c", fbuf->lines[i][j]);
 				}
 			}
 		}
 	}
 }
 
-void process_input(char input, filebuf *fbuf, visualbuf *vbuf) {
+void process_input(char input, filebuf *fbuf, visualbuf *vbuf, ctrlbuf *cbuf) {
 	switch(input) {
 		case CTRL_KEY('c'):
-			vbuf->ctrlc = 1;
+			cbuf->ctrlc = 1;
 			break;
 		case '\033':
 			getch();
@@ -144,6 +140,15 @@ char **readlines(FILE *f, int *count) {
 	*count = linecount;
 
 	return array;
+}
+
+int total_tabs(filebuf *fbuf) {
+	int i;
+	int j;
+	for (i = 0; i < fbuf->linecount; i++) {
+		for (j = 0; fbuf->lines[i][j] != '\t'; j++) {}
+		fbuf->toffset[i] = j;
+	}	
 }
 
 // puts size of each line in an array of ints
