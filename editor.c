@@ -26,8 +26,7 @@ void update_screen(filebuf *fbuf, visualbuf *vbuf) {
 					continue;
 				}
 				else {
-					if (fbuf->lines[i][j] == '\0') printw("\n");
-					else mvwprintw(stdscr, i - vbuf->voffset, j - vbuf->hoffset, "%c", fbuf->lines[i][j]);
+					mvwprintw(stdscr, i - vbuf->voffset, j - vbuf->hoffset, "%c", fbuf->lines[i][j]);
 				}
 			}
 		}
@@ -53,23 +52,45 @@ void process_input(char input, filebuf *fbuf, visualbuf *vbuf, ctrlbuf *cbuf) {
 					else {
 						vbuf->cury--;
 					}
+					if (vbuf->curx > fbuf->linesize[vbuf->cury]) {
+						vbuf->curx = fbuf->linesize[vbuf->cury];
+						// if (vbuf->hoffset > 0) {
+						 	// vbuf->hoffset = fbuf->linesize[vbuf->cury + 1] - vbuf->maxx;
+						 	// update_screen(fbuf, vbuf);
+						// } 
+							
+					} 
 					move(vbuf->cury, vbuf->curx);
 					break;
 				case 66: // down
-					if(vbuf->cury == vbuf->maxy - 1 && (vbuf->maxy + vbuf->voffset) != fbuf->linecount) {
-						vbuf->cury = vbuf->maxy - 1;
+					// handles current y position
+					if (vbuf->cury == vbuf->maxy - 1 && (vbuf->maxy + vbuf->voffset) != fbuf->linecount) {
+						vbuf->cury == vbuf->maxy - 1;
 						if ((vbuf->maxy + vbuf->voffset) < fbuf->linecount) {
 							vbuf->voffset++;
 							update_screen(fbuf, vbuf);
 						}
 					}
-					else if ((vbuf->maxy + vbuf->voffset) <= fbuf->linecount) {
-						vbuf->cury++;
+					else if ((vbuf->maxy + vbuf->voffset) <= fbuf->linecount) vbuf->cury++;
+					//handles the current x position
+					if (vbuf->curx > fbuf->linesize[vbuf->cury] && vbuf->hoffset == 0) {	
+						vbuf->curx = fbuf->linesize[vbuf->cury];
+					} 
+					//dear god where do I start with this if, its 3:05 AM as Im writing this Im tired
+					else if (vbuf->curx > fbuf->linesize[vbuf->cury] || // checks if its past the end of the line 
+						(vbuf->curx <= fbuf->linesize[vbuf->cury] && (fbuf->linesize[vbuf->cury] - vbuf->hoffset) < vbuf->maxx) // ensures it moves correctly when aligned with the original line len without moving the cursor too far on longer lines
+						&& vbuf->hoffset > 0){ //checks for offset1
+						vbuf->curx = fbuf->linesize[vbuf->cury] - vbuf->hoffset;
+						if (fbuf->linesize[vbuf->cury] < vbuf->hoffset){
+							vbuf->curx = fbuf->linesize[vbuf->cury];
+							vbuf->hoffset = 0;
+							update_screen(fbuf, vbuf);
+						}
 					}
 					move(vbuf->cury, vbuf->curx);
 					break;
 				case 67: // right
-					if(vbuf->curx == vbuf->maxx - 1) {
+					if (vbuf->curx == vbuf->maxx - 1) {
 						vbuf->curx = vbuf->maxx - 1;
 						if (fbuf->lines[vbuf->cury + vbuf->voffset][vbuf->curx + vbuf->hoffset] != '\0') {
 							vbuf->hoffset++;
@@ -142,16 +163,21 @@ char **readlines(FILE *f, int *count) {
 	return array;
 }
 
+// stores size of each line in an array of ints
 int total_tabs(filebuf *fbuf) {
 	int i;
 	int j;
+	int count;
 	for (i = 0; i < fbuf->linecount; i++) {
-		for (j = 0; fbuf->lines[i][j] != '\t'; j++) {}
-		fbuf->toffset[i] = j;
+		for (j = 0; fbuf->lines[i][j] != '\0'; j++) {
+			if (fbuf->lines[i][j] == '\t') count++;
+		}
+		fbuf->toffset[i] = count;
+		count = 0; 
 	}	
 }
 
-// puts size of each line in an array of ints
+// stores size of each line in an array of ints
 int getlinesize(filebuf *fbuf) {
 	int i;
 	int j;
@@ -160,3 +186,4 @@ int getlinesize(filebuf *fbuf) {
 		fbuf->linesize[i] = j;
 	}
 }
+
