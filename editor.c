@@ -170,20 +170,6 @@ char **readlines(FILE *f, int *count) {
 }
 
 // stores size of each line in an array of ints
-int total_tabs(filebuf *fbuf) {
-	int i;
-	int j;
-	int count;
-	for (i = 0; i < fbuf->linecount; i++) {
-		for (j = 0; fbuf->lines[i][j] != '\0'; j++) {
-			if (fbuf->lines[i][j] == '\t') count++;
-		}
-		fbuf->toffset[i] = count;
-		count = 0; 
-	}	
-}
-
-// stores size of each line in an array of ints
 int getlinesize(filebuf *fbuf) {
 	int i;
 	int j;
