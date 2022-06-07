@@ -52,14 +52,21 @@ void process_input(char input, filebuf *fbuf, visualbuf *vbuf, ctrlbuf *cbuf) {
 					else {
 						vbuf->cury--;
 					}
-					if (vbuf->curx > fbuf->linesize[vbuf->cury]) {
-						vbuf->curx = fbuf->linesize[vbuf->cury];
-						// if (vbuf->hoffset > 0) {
-						 	// vbuf->hoffset = fbuf->linesize[vbuf->cury + 1] - vbuf->maxx;
-						 	// update_screen(fbuf, vbuf);
-						// } 
-							
+					if (vbuf->curx > fbuf->linesize[vbuf->cury + vbuf->voffset] && vbuf->hoffset == 0) {	
+						vbuf->curx = fbuf->linesize[vbuf->cury + vbuf->voffset];
 					} 
+					//dear god where do I start with this if, its 3:05 AM as Im writing this Im tired
+					else if (vbuf->curx > fbuf->linesize[vbuf->cury + vbuf->voffset] || // checks if its past the end of the line 
+						(vbuf->curx <= fbuf->linesize[vbuf->cury + vbuf->voffset] && (fbuf->linesize[vbuf->cury + vbuf->voffset] - vbuf->hoffset) < vbuf->maxx) 
+						// ^^ ensures it moves correctly when aligned with the original line len without moving the cursor too far on longer lines
+						&& vbuf->hoffset > 0){ //checks for offset1
+						vbuf->curx = fbuf->linesize[vbuf->cury + vbuf->voffset] - vbuf->hoffset;
+						if (fbuf->linesize[vbuf->cury + vbuf->voffset] < vbuf->hoffset){
+							vbuf->curx = fbuf->linesize[vbuf->cury + vbuf->voffset];
+							vbuf->hoffset = 0;
+							update_screen(fbuf, vbuf);
+						}
+					}
 					move(vbuf->cury, vbuf->curx);
 					break;
 				case 66: // down
@@ -73,16 +80,17 @@ void process_input(char input, filebuf *fbuf, visualbuf *vbuf, ctrlbuf *cbuf) {
 					}
 					else if ((vbuf->maxy + vbuf->voffset) <= fbuf->linecount) vbuf->cury++;
 					//handles the current x position
-					if (vbuf->curx > fbuf->linesize[vbuf->cury] && vbuf->hoffset == 0) {	
-						vbuf->curx = fbuf->linesize[vbuf->cury];
+					if (vbuf->curx > fbuf->linesize[vbuf->cury + vbuf->voffset] && vbuf->hoffset == 0) {	
+						vbuf->curx = fbuf->linesize[vbuf->cury + vbuf->voffset];
 					} 
 					//dear god where do I start with this if, its 3:05 AM as Im writing this Im tired
-					else if (vbuf->curx > fbuf->linesize[vbuf->cury] || // checks if its past the end of the line 
-						(vbuf->curx <= fbuf->linesize[vbuf->cury] && (fbuf->linesize[vbuf->cury] - vbuf->hoffset) < vbuf->maxx) // ensures it moves correctly when aligned with the original line len without moving the cursor too far on longer lines
+					else if (vbuf->curx > fbuf->linesize[vbuf->cury + vbuf->voffset] || // checks if its past the end of the line 
+						(vbuf->curx <= fbuf->linesize[vbuf->cury + vbuf->voffset] && (fbuf->linesize[vbuf->cury + vbuf->voffset] - vbuf->hoffset) < vbuf->maxx) 
+						// ^^ ensures it moves correctly when aligned with the original line len without moving the cursor too far on longer lines
 						&& vbuf->hoffset > 0){ //checks for offset1
-						vbuf->curx = fbuf->linesize[vbuf->cury] - vbuf->hoffset;
-						if (fbuf->linesize[vbuf->cury] < vbuf->hoffset){
-							vbuf->curx = fbuf->linesize[vbuf->cury];
+						vbuf->curx = fbuf->linesize[vbuf->cury + vbuf->voffset] - vbuf->hoffset;
+						if (fbuf->linesize[vbuf->cury + vbuf->voffset] < vbuf->hoffset){
+							vbuf->curx = fbuf->linesize[vbuf->cury + vbuf->voffset];
 							vbuf->hoffset = 0;
 							update_screen(fbuf, vbuf);
 						}
